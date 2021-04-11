@@ -43,7 +43,7 @@ public class AVLTree {
         while (node != null) {
             if (node.getKey() == k)
                 return node.getValue();
-            else if (node.getKey() < k)
+            else if (node.getKey() > k)
                 node = node.getLeft();
             else
                 node = node.getRight();
@@ -98,7 +98,7 @@ public class AVLTree {
             if (Math.abs(parent.balanceFactor()) == 2) {
                 performRotation(parent);
                 updateNumOfTsUp(parent);
-                return  ++totalBalancing;
+                return  totalBalancing;
             }
             parent = parent.getParent();
         }
@@ -175,17 +175,39 @@ public class AVLTree {
         AVLNode parent = node.getParent();
         node.setParent(node.getRight());
         node.setRight(node.getRight().getLeft());
+        node.getRight().setParent(node);
         node.getParent().setLeft(node);
-        if (parent == null) node.getParent().setParent(null);
-        else if (parent.getKey() < node.getKey())
+        if (parent == null) {
+            node.getParent().setParent(null);
+            root = node.getParent();
+        } else if (parent.getKey() < node.getKey())
             parent.setRight(node.getParent());
         else
             parent.setLeft(node.getParent());
+        node.getParent().setParent(parent);
         updateHeight(node);
         updateNumOfTs(node);
         updateNumOfTs(node.getParent());
     }
 
+    private void rightRotation(AVLNode node) {
+        AVLNode parent = node.getParent();
+        node.setParent(node.getLeft());
+        node.setLeft(node.getLeft().getRight());
+        node.getLeft().setParent(node);
+        node.getParent().setRight(node);
+        if (parent == null) {
+            node.getParent().setParent(null);
+            root = node.getParent();
+        } else if (parent.getKey() < node.getKey())
+            parent.setRight(node.getParent());
+        else
+            parent.setLeft(node.getParent());
+        node.getParent().setParent(parent);
+        updateHeight(node);
+        updateNumOfTs(node);
+        updateNumOfTs(node.getParent());
+    }
     private void updateNumOfTs(AVLNode node) {
         node.setNumOfTs(node.getLeft().getNumOfTs() +
                 node.getRight().getNumOfTs() + (node.getValue() ? 1 : 0));
@@ -197,22 +219,6 @@ public class AVLTree {
         node.setHeight(newHeight);
         return changed;
     }
-
-    private void rightRotation(AVLNode node) {
-        AVLNode parent = node.getParent();
-        node.setParent(node.getLeft());
-        node.setLeft(node.getLeft().getRight());
-        node.getParent().setRight(node);
-        if (parent == null) node.getParent().setParent(null);
-        else if (parent.getKey() < node.getKey())
-            parent.setRight(node.getParent());
-        else
-            parent.setLeft(node.getParent());
-        updateHeight(node);
-        updateNumOfTs(node);
-        updateNumOfTs(node.getParent());
-    }
-
     /**
      * public int delete(int k)
      * <p>
@@ -222,29 +228,12 @@ public class AVLTree {
      * returns -1 if an item with key k was not found in the tree.
      */
     public int delete(int k) {
-        if (empty()) return -1;
-        AVLNode node = root;
-        while (node.getKey() != k) {
-            if (!node.isRealNode()) return -1;
-            if (node.getKey() < k) {
-                node = node.getRight();
-            } else
-                node = node.getLeft();
-        }
-        AVLNode parent = node.getParent();
-        if (parent.getKey() < k) {
-            parent.setRight(new AVLNode(-1, null));
-        } else {
-            parent.setLeft(new AVLNode(-1, null));
-        }
-        setNextPrevDelete(node);
-        updateMinMaxDelete(node);
-        --size;
 
+        AVLNode parent = deleteBST(k);
 
         int totalBalancing = 0;
         while (parent != null) {
-            if (!updateHeight(parent)) {
+            if (!updateHeight(parent) && Math.abs(parent.balanceFactor()) < 2) {
                 updateNumOfTsUp(parent);
                 return totalBalancing;
             }
@@ -257,7 +246,69 @@ public class AVLTree {
         }
         return totalBalancing;
 
+    }
 
+    public AVLNode deleteBST(int k) {
+        if (empty()) return null ;
+        AVLNode node = root;
+        while (node.getKey() != k) {
+            if (!node.isRealNode()) return null;
+            if (node.getKey() < k) {
+                node = node.getRight();
+            } else
+                node = node.getLeft();
+        }
+        AVLNode parent = node.getParent();
+        setNextPrevDelete(node);
+        updateMinMaxDelete(node);
+        --size;
+        if (node.getRight().isRealNode()) {
+            if (node.getLeft().isRealNode()) {
+                return deleteTwoChidren(node);
+            } else {
+
+                node.getRight().setParent(parent);
+
+                if (parent.getKey() < k) {
+                    parent.setRight(node.getRight());
+                } else {
+                    parent.setLeft(node.getRight());
+                }
+            }
+        } else {
+            if (node.getLeft().isRealNode()) {
+                node.getLeft().setParent(parent);
+            }
+            if (parent.getKey() < k) {
+                parent.setRight(node.getLeft());
+            } else {
+                parent.setLeft(node.getLeft());
+            }
+        }
+        return parent;
+    }
+
+    private AVLNode deleteTwoChidren(AVLNode node) {
+        AVLNode succ = node.getNext();
+        AVLNode succParent = succ.getParent();
+        succParent.setLeft(succ.getRight());
+        succ.getRight().setParent(succParent);
+
+        succ.setRight(node.getRight());
+        node.getRight().setParent(succ);
+
+        succ.setLeft(node.getLeft());
+        node.getLeft().setParent(succ);
+
+        succ.setParent(node.getParent());
+        if (node.getParent() != null) {
+            if (node.getParent().getKey() < node.getKey()) {
+                node.getParent().setRight(succ);
+            } else {
+                node.getParent().setLeft(succ);
+            }
+        }
+        return succParent;
     }
 
     private void setNextPrevDelete(AVLNode node) {
@@ -398,6 +449,88 @@ public class AVLTree {
     }
 
 
+    public void printTree() {
+        String[] visual = trepr(root);
+        for (int i=0; i<visual.length; i++) {
+            System.out.println(visual[i]);
+        }
+    }
+
+    private static String[] trepr(AVLNode node) {
+        // Return a list of textual representations of the levels in t
+        if (node == null) return new String[]{"┴"};
+        String zis = node.toString();
+        String[] leftTxt;
+        String[] rightTxt;
+        if (!node.getLeft().isRealNode())
+            leftTxt = new String[]{"┴"};
+        else
+            leftTxt = trepr(node.getLeft());
+        if (!node.getRight().isRealNode())
+            rightTxt = new String[]{"┴"};
+        else
+            rightTxt = trepr(node.getRight());
+        return conc(leftTxt,zis,rightTxt);
+    }
+
+    private static String[] conc(String[] left, String root, String[] right) {
+        // Return a concatenation of textual represantations of
+        // a root node, its left node, and its right node
+        int lwid = left[left.length-1].length(); // levels in left
+        int rwid = right[right.length-1].length(); // levels in right
+        int rootwid = root.length();
+        String[] result = new String[2 + Math.max(left.length,right.length)];
+        result[0] = mul(" ",lwid+1) + root + mul(" ",rwid+1); // first row
+        int ls = leftspace(left[0]);
+        int rs = rightspace(right[0]);
+        result[1] = mul(" ",ls) + mul("",lwid-ls) + "/" + mul(" ",rootwid) + "\\" + mul("",rs) + mul(" ",rwid-rs); // second row
+        String row;
+        for (int i=0; i<Math.max(left.length,right.length); i++) {
+            // conect the i row in left to row i in right
+            row = "";
+
+            if (i < left.length) {
+                row += left[i];
+            }
+            else {
+                row += mul(" ",lwid);
+            }
+
+            row += mul(" ",rootwid+2);
+
+            if (i < right.length) {
+                row += right[i];
+            }
+            else {
+                row += mul(" ",rwid);
+            }
+
+            result[i+2] = row;
+        }
+        return result;
+    }
+
+    private static int leftspace(String row) {
+        int i = row.length()-1;
+        while (row.charAt(i)==' ') {i--;}
+        return i+1;
+        // returns the index of where the second whitespace starts
+    }
+
+    private static int rightspace(String row) {
+        int i = 0;
+        while (row.charAt(i)==' ') {i++;}
+        return i;
+        // returns the index of where the first whitespace ends
+    }
+
+    private static String mul(String a, int t) {
+        if (t==0) {return "";}
+        return mul(a,t-1)+a;
+        // return new string of a+a...+a - t times
+    }
+
+
     /**
      * public class AVLNode
      * <p>
@@ -454,8 +587,8 @@ public class AVLTree {
         }
 
         //returns node's value [info] (for virtual node return null)
-        public boolean getValue() {
-            return false; // to be replaced by student code
+        public Boolean getValue() {
+            return this.val;
         }
 
         //sets left child
@@ -490,7 +623,7 @@ public class AVLTree {
 
         // Returns True if this is a non-virtual AVL node
         public boolean isRealNode() {
-            return key == -1;
+            return key > -1;
         }
 
         // sets the height of the node
@@ -531,6 +664,12 @@ public class AVLTree {
 
         public void setNumOfTs(int numOfTs) {
             this.numOfTs = numOfTs;
+        }
+
+
+        @Override
+        public String toString() {
+            return "(" + key + ": " + val + ")";
         }
     }
 }
