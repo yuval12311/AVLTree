@@ -8,17 +8,34 @@
  * <p>
  * However, you are allowed (and required) to implement the given functions, and can add functions of your own
  * according to your needs.
+ * @author Yuval Nosovitsky
+ * Id: 322450883
+ * username: nosovitsky
  */
 
 public class AVLTree {
+    /**
+     * The root of the tree
+     */
     private AVLNode root;
+    /**
+     * The node with the highest key in the tree
+     */
     private AVLNode max;
+    /**
+     * The node with the lowest key in the tree
+     */
     private AVLNode min;
+    /**
+     * the amount of nodes in the tree
+     */
     private int    size;
 
 
-
-
+    /**
+     * constructs an empty tree
+     * time complexity: O(1)
+     */
     public AVLTree() {
         this.root = null;
         this.size = 0;
@@ -27,16 +44,17 @@ public class AVLTree {
      * public boolean empty()
      * <p>
      * returns true if and only if the tree is empty
+     * time complexity: O(1)
      */
     public boolean empty() {
         return this.size == 0;
     }
 
     /**
-     * public boolean search(int k)
-     * <p>
      * returns the info of an item with key k if it exists in the tree
      * otherwise, returns null
+     * uses regular binary search.
+     * time complexity: O(log(size))
      */
     public Boolean search(int k) {
         AVLNode node = root;
@@ -59,6 +77,8 @@ public class AVLTree {
 	 * returns the number of nodes which require rebalancing operations (i.e. promotions or rotations).
 	 * This always includes the newly-created node.
      * returns -1 if an item with key k already exists in the tree.
+     * Algorithm is as shown in class.
+     * time complexity: O(log(size))
      */
     public int insert(int k, boolean i) {
         if (empty()) {
@@ -106,6 +126,11 @@ public class AVLTree {
 
     }
 
+    /**
+     * updates the numOfTs field in all the nodes in the path from node to the root.
+     * time complexity: O(log(size))
+     * @param node
+     */
     private void updateNumOfTsUp(AVLNode node) {
         while (node != null) {
             updateNumOfTs(node);
@@ -113,12 +138,22 @@ public class AVLTree {
         }
     }
 
+    /**
+     * Updates min and max with the newly added node.
+     * time complexity: O(1)
+     * @param node
+     */
     private void updateMinMaxInsert(AVLNode node) {
         if (max.getKey() < node.getKey()) max = node;
         if (min.getKey() > node.getKey()) min = node;
     }
 
 
+    /**
+     * Sets the prev and next of the newly added node.
+     * time complexity: O(1)
+     * @param node
+     */
     private void setNextPrevInsert(AVLNode node) {
         AVLNode next = slowSucc(node);
         node.setNext(next);
@@ -128,6 +163,12 @@ public class AVLTree {
         if (prev != null) prev.setNext(node);
     }
 
+    /**
+     * Finds the predecessor of node manually.
+     * time complexity: O(log(size))
+     * @param node
+     * @return the predecessor of node
+     */
     private AVLNode slowPrev(AVLNode node) {
         if (node.getLeft().isRealNode()) {
             node = node.getLeft();
@@ -141,6 +182,12 @@ public class AVLTree {
         return node.getParent();
     }
 
+    /**
+     * Finds the successor of node manually.
+     * time complexity: O(log(size))
+     * @param node
+     * @return the successor of node
+     */
     private AVLNode slowSucc(AVLNode node) {
         if (node.getRight().isRealNode()) {
             node = node.getRight();
@@ -155,7 +202,8 @@ public class AVLTree {
     }
 
     /**
-     * Choose which rotation to execute on the node, and return the number of rotations made (1 for normal rotation, 2 for double)
+     * Choose which rotation to execute on the node
+     * time complexity: O(1)
      */
     private void performRotation(AVLNode node) {
         if (node.balanceFactor() > 0) {
@@ -171,6 +219,11 @@ public class AVLTree {
         }
     }
 
+    /**
+     * rotates node left, according to rules of AVl rotation
+     * time complexity: O(1)
+     * @param node
+     */
     private void leftRotation(AVLNode node) {
         AVLNode parent = node.getParent();
         node.setParent(node.getRight());
@@ -190,6 +243,12 @@ public class AVLTree {
         updateNumOfTs(node.getParent());
     }
 
+
+    /**
+     * rotates node right, according to rules of AVL rotations
+     * time complexity: O(1)
+     * @param node
+     */
     private void rightRotation(AVLNode node) {
         AVLNode parent = node.getParent();
         node.setParent(node.getLeft());
@@ -213,6 +272,12 @@ public class AVLTree {
                 node.getRight().getNumOfTs() + (node.getValue() ? 1 : 0));
     }
 
+    /**
+     * updates the height of node according to its children
+     * time complexity: O(1)
+     * @param node
+     * @return whether the height was updated
+     */
     private boolean updateHeight(AVLNode node) {
         int newHeight = 1 + Math.max(node.getLeft().getHeight(), node.getRight().getHeight());
         boolean changed = node.getHeight() != newHeight;
@@ -226,6 +291,9 @@ public class AVLTree {
      * the tree must remain valid (keep its invariants).
      * returns the number of nodes which required rebalancing operations (i.e. demotions or rotations).
      * returns -1 if an item with key k was not found in the tree.
+     *
+     * Algorithm is as shown in class.
+     * time complexity: O(log(size))
      */
     public int delete(int k) {
 
@@ -248,6 +316,14 @@ public class AVLTree {
 
     }
 
+
+    /**
+     * deletes the node with key k as if it was a regular Binary Searching Tree.
+     * algorithm is as shown in class.
+     * time complexity: O(log(size))
+     * @param k
+     * @return The node that one should start vertical updating of heights and rotations with
+     */
     public AVLNode deleteBST(int k) {
         if (empty()) return null ;
         AVLNode node = root;
@@ -288,6 +364,13 @@ public class AVLTree {
         return parent;
     }
 
+
+    /**
+     * Handles the deletion of node in the case that node has two children
+     * time complexity: O(1)
+     * @param node
+     * @return the parent of node's former successor
+     */
     private AVLNode deleteTwoChidren(AVLNode node) {
         AVLNode succ = node.getNext();
         AVLNode succParent = succ.getParent();
@@ -311,6 +394,12 @@ public class AVLTree {
         return succParent;
     }
 
+
+    /**
+     * updates the prev and the next of the adjacent nodes to accommodate for node's deletion
+     * time complexity: O(1)
+     * @param node
+     */
     private void setNextPrevDelete(AVLNode node) {
         AVLNode next = node.getNext();
         AVLNode prev = node.getPrev();
@@ -318,6 +407,11 @@ public class AVLTree {
         if (prev != null) prev.setNext(next);
     }
 
+    /**
+     * Updates the min and max given that node will be deleted
+     * time complexity: O(1)
+     * @param node
+     */
     private void updateMinMaxDelete(AVLNode node) {
         if (max.getKey() == node.getKey()) max = node.getPrev();
         if (min.getKey() == node.getKey()) min = node.getNext();
@@ -328,6 +422,7 @@ public class AVLTree {
      * <p>
      * Returns the info of the item with the smallest key in the tree,
      * or null if the tree is empty
+     * time complexity: O(1)
      */
     public Boolean min() {
         return min.getValue();
@@ -338,6 +433,7 @@ public class AVLTree {
      * <p>
      * Returns the info of the item with the largest key in the tree,
      * or null if the tree is empty
+     * time complexity: O(1)
      */
     public Boolean max() {
         return max.getValue();
@@ -348,6 +444,7 @@ public class AVLTree {
      * <p>
      * Returns a sorted array which contains all keys in the tree,
      * or an empty array if the tree is empty.
+     * time complexity: O(size)
      */
     public int[] keysToArray() {
         int[] arr = new int[size];
@@ -364,6 +461,7 @@ public class AVLTree {
      * Returns an array which contains all info in the tree,
      * sorted by their respective keys,
      * or an empty array if the tree is empty.
+     * time complexity: O(size)
      */
     public boolean[] infoToArray() {
         boolean[] arr = new boolean[size];
@@ -378,6 +476,7 @@ public class AVLTree {
      * public int size()
      * <p>
      * Returns the number of nodes in the tree.
+     * time complexity: O(1)
      */
     public int size() {
         return size;
@@ -387,6 +486,7 @@ public class AVLTree {
      * public int getRoot()
      * <p>
      * Returns the root AVL node, or null if the tree is empty
+     * time complexity: O(1)
      */
     public AVLNode getRoot() {
         return this.root;
@@ -399,21 +499,21 @@ public class AVLTree {
      * smaller or equal to k.
      *
      * precondition: this.search(k) != null
-     *
+     * time complexity: O(log(size))
      */
     public boolean prefixXor(int k){
-        int TsLessThan = root.getNumOfTs();
+        int Ts = root.getNumOfTs(); //The amount of trues in the entire tree
         AVLNode node = root;
         while (node.getKey() != k) {
             if (node.getKey() < k) {
                 node = node.getRight();
             }
             else {
-                TsLessThan -= node.getRight().getNumOfTs();
+                Ts -= 1 + node.getRight().getNumOfTs(); // subtracting trues with key bigger than k
                 node = node.getLeft();
             }
         }
-        return (TsLessThan - node.getRight().getNumOfTs()) % 2 == 1;
+        return (Ts - node.getRight().getNumOfTs()) % 2 == 1;
 
     }
 
@@ -421,7 +521,7 @@ public class AVLTree {
      * public AVLNode successor
      *
      * given a node 'node' in the tree, return the successor of 'node' in the tree (or null if successor doesn't exist)
-     *
+     * time complexity: O(1)
      * @param node - the node whose successor should be returned
      * @return the successor of 'node' if exists, null otherwise
      */
@@ -435,7 +535,7 @@ public class AVLTree {
      * This function is identical to prefixXor(int k) in terms of input/output. However, the implementation of
      * succPrefixXor should be the following: starting from the minimum-key node, iteratively call successor until
      * you reach the node of key k. Return the xor of all visited nodes.
-     *
+     * time complexity: O(size)
      * precondition: this.search(k) != null
      */
     public boolean succPrefixXor(int k){
@@ -554,6 +654,9 @@ public class AVLTree {
         private AVLNode prev;
 
 
+        /**
+         * Create leaf with given key and value
+         */
         public AVLNode(int key, Boolean val) {
             this.key = key;
             this.parent = null;
@@ -574,6 +677,9 @@ public class AVLTree {
             }
         }
 
+        /**
+         * Create virtual node for a leaf
+         */
         private AVLNode virtualNode() {
             AVLNode virt = new AVLNode(-1, null);
             virt.setParent(this);
@@ -673,6 +779,3 @@ public class AVLTree {
         }
     }
 }
-
-
-
