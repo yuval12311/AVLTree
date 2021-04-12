@@ -13,7 +13,7 @@
  * username: nosovitsky
  */
 
-public class AVLTree {
+public class AVLTree implements IBSTree {
     /**
      * The root of the tree
      */
@@ -109,15 +109,15 @@ public class AVLTree {
         int totalBalancing = 0;
         while (parent != null) {
             if (!updateHeight(parent)) {
-                updateNumOfTsUp(parent);
+                updateXorsUp(parent);
                 return totalBalancing;
             }
             ++totalBalancing;
-            updateNumOfTs(parent);
+            updateXor(parent);
 
             if (Math.abs(parent.balanceFactor()) == 2) {
                 performRotation(parent);
-                updateNumOfTsUp(parent);
+                updateXorsUp(parent);
                 return  totalBalancing;
             }
             parent = parent.getParent();
@@ -127,13 +127,13 @@ public class AVLTree {
     }
 
     /**
-     * updates the numOfTs field in all the nodes in the path from node to the root.
+     * updates the xorOfChildren field in all the nodes in the path from node to the root.
      * time complexity: O(log(size))
      * @param node
      */
-    private void updateNumOfTsUp(AVLNode node) {
+    private void updateXorsUp(AVLNode node) {
         while (node != null) {
-            updateNumOfTs(node);
+            updateXor(node);
             node = node.getParent();
         }
     }
@@ -239,8 +239,8 @@ public class AVLTree {
             parent.setLeft(node.getParent());
         node.getParent().setParent(parent);
         updateHeight(node);
-        updateNumOfTs(node);
-        updateNumOfTs(node.getParent());
+        updateXor(node);
+        updateXor(node.getParent());
     }
 
 
@@ -264,12 +264,11 @@ public class AVLTree {
             parent.setLeft(node.getParent());
         node.getParent().setParent(parent);
         updateHeight(node);
-        updateNumOfTs(node);
-        updateNumOfTs(node.getParent());
+        updateXor(node);
+        updateXor(node.getParent());
     }
-    private void updateNumOfTs(AVLNode node) {
-        node.setNumOfTs(node.getLeft().getNumOfTs() +
-                node.getRight().getNumOfTs() + (node.getValue() ? 1 : 0));
+    private void updateXor(AVLNode node) {
+        node.setXorOfChildren(node.getValue() ^ node.getLeft().getXorOfChildren() ^ node.getRight().getXorOfChildren());
     }
 
     /**
@@ -302,10 +301,11 @@ public class AVLTree {
         int totalBalancing = 0;
         while (parent != null) {
             if (!updateHeight(parent) && Math.abs(parent.balanceFactor()) < 2) {
-                updateNumOfTsUp(parent);
+                updateXorsUp(parent);
                 return totalBalancing;
             }
             ++totalBalancing;
+            updateXor(parent);
 
             if (Math.abs(parent.balanceFactor()) == 2) {
                 performRotation(parent);
@@ -374,11 +374,15 @@ public class AVLTree {
     private AVLNode deleteTwoChidren(AVLNode node) {
         AVLNode succ = node.getNext();
         AVLNode succParent = succ.getParent();
-        succParent.setLeft(succ.getRight());
-        succ.getRight().setParent(succParent);
+        if (succParent.getKey() != node.getKey()) {
+            succParent.setLeft(succ.getRight());
+            succ.getRight().setParent(succParent);
+            succ.setRight(node.getRight());
+            node.getRight().setParent(succ);
+        }
 
-        succ.setRight(node.getRight());
-        node.getRight().setParent(succ);
+
+
 
         succ.setLeft(node.getLeft());
         node.getLeft().setParent(succ);
@@ -391,7 +395,7 @@ public class AVLTree {
                 node.getParent().setLeft(succ);
             }
         }
-        return succParent;
+        return succParent.getKey() == node.getKey() ? succ : succParent;
     }
 
 
@@ -502,18 +506,18 @@ public class AVLTree {
      * time complexity: O(log(size))
      */
     public boolean prefixXor(int k){
-        int Ts = root.getNumOfTs(); //The amount of trues in the entire tree
+        boolean xor = root.xorOfChildren; //xor of the entire tree
         AVLNode node = root;
         while (node.getKey() != k) {
             if (node.getKey() < k) {
                 node = node.getRight();
             }
             else {
-                Ts -= 1 + node.getRight().getNumOfTs(); // subtracting trues with key bigger than k
+                xor ^= node.getValue() ^ node.getRight().getXorOfChildren(); // removing the nodes with keys bigger than k from the xor
                 node = node.getLeft();
             }
         }
-        return (Ts - node.getRight().getNumOfTs()) % 2 == 1;
+        return xor ^ node.getRight().getXorOfChildren();
 
     }
 
@@ -541,7 +545,7 @@ public class AVLTree {
     public boolean succPrefixXor(int k){
         boolean xor = min.getValue();
         AVLNode node = successor(min);
-        while (node.getKey() <= k) {
+        while (node != null && node.getKey() <= k) {
             xor ^= node.getValue();
             node = successor(node);
         }
@@ -646,7 +650,7 @@ public class AVLTree {
         private final int key;
         private int height;
         private Boolean val;
-        private int numOfTs;
+        private boolean xorOfChildren;
         private AVLNode parent;
         private AVLNode left;
         private AVLNode right;
@@ -665,13 +669,13 @@ public class AVLTree {
                 setRight(null);
                 setHeight(-1);
                 this.val = null;
-                this.numOfTs = 0;
+                this.xorOfChildren = false;
             } else {
                 setRight(virtualNode());
                 setLeft(virtualNode());
                 setHeight(0);
                 this.val = val;
-                this.numOfTs = val ? 1 : 0;
+                this.xorOfChildren = val;
 
 
             }
@@ -764,18 +768,18 @@ public class AVLTree {
 
         }
 
-        public int getNumOfTs() {
-            return numOfTs;
+        public boolean getXorOfChildren() {
+            return xorOfChildren;
         }
 
-        public void setNumOfTs(int numOfTs) {
-            this.numOfTs = numOfTs;
+        public void setXorOfChildren(boolean xor) {
+            this.xorOfChildren = xor;
         }
 
 
         @Override
         public String toString() {
-            return "(" + key + ": " + val + ")";
+            return "(" + key + ")";
         }
     }
 }
