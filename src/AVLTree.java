@@ -84,7 +84,7 @@ public class AVLTree implements IBSTree {
         if (empty()) {
             max = min = root = new AVLNode(k, i);
             ++size;
-            return 0;
+            return 1;
         }
         AVLNode potentialPlace = root;
         while (potentialPlace.isRealNode()) {
@@ -106,19 +106,18 @@ public class AVLTree implements IBSTree {
         updateMinMaxInsert(node);
         ++size;
 
-        int totalBalancing = 0;
+        int totalBalancing = 1;
         while (parent != null) {
             if (!updateHeight(parent)) {
                 updateXorsUp(parent);
                 return totalBalancing;
             }
-            ++totalBalancing;
             updateXor(parent);
 
             if (Math.abs(parent.balanceFactor()) == 2) {
-                performRotation(parent);
+                dispatchRotation(parent);
                 updateXorsUp(parent);
-                return  totalBalancing;
+                return  ++totalBalancing;
             }
             parent = parent.getParent();
         }
@@ -155,48 +154,24 @@ public class AVLTree implements IBSTree {
      * @param node
      */
     private void setNextPrevInsert(AVLNode node) {
-        AVLNode next = slowSucc(node);
+        AVLNode next = slowAdj(Direction.Right, node);
         node.setNext(next);
         if (next != null) next.setPrev(node);
-        AVLNode prev = slowPrev(node);
+        AVLNode prev = slowAdj(Direction.Left, node);
         node.setPrev(prev);
         if (prev != null) prev.setNext(node);
     }
 
-    /**
-     * Finds the predecessor of node manually.
-     * time complexity: O(log(size))
-     * @param node
-     * @return the predecessor of node
-     */
-    private AVLNode slowPrev(AVLNode node) {
-        if (node.getLeft().isRealNode()) {
-            node = node.getLeft();
-            while (node.getRight().isRealNode()) {
-                node = node.getRight();
-            }
-            return node.getParent();
-        }
-        while (node.getParent() != null && node.getParent().getKey() > node.getKey())
-            node = node.getParent();
-        return node.getParent();
-    }
 
-    /**
-     * Finds the successor of node manually.
-     * time complexity: O(log(size))
-     * @param node
-     * @return the successor of node
-     */
-    private AVLNode slowSucc(AVLNode node) {
-        if (node.getRight().isRealNode()) {
-            node = node.getRight();
-            while (node.getLeft().isRealNode()) {
-                node = node.getLeft();
+    private AVLNode slowAdj(Direction dir, AVLNode node) {
+        if (node.getChild(dir).isRealNode()) {
+            node = node.getChild(dir);
+            while (node.getChild(dir.opposite()).isRealNode()) {
+                node = node.getChild(dir.opposite());
             }
             return node.getParent();
         }
-        while (node.getParent() != null && node.getParent().getKey() < node.getKey())
+        while (node.getParent() != null && node.kindOfChild() == dir)
             node = node.getParent();
         return node.getParent();
     }
@@ -205,68 +180,45 @@ public class AVLTree implements IBSTree {
      * Choose which rotation to execute on the node
      * time complexity: O(1)
      */
-    private void performRotation(AVLNode node) {
+    private void dispatchRotation(AVLNode node) {
         if (node.balanceFactor() > 0) {
             if (node.getLeft().balanceFactor() < 0) {
-                leftRotation(node.getLeft());
+                rotate(Direction.Left, node.getLeft());
             }
-            rightRotation(node);
+            rotate(Direction.Right, node);
         } else {
             if (node.getRight().balanceFactor() > 0) {
-                rightRotation(node.getRight());
+                rotate(Direction.Right, node.getRight());
             }
-            leftRotation(node);
+            rotate(Direction.Left, node);
         }
     }
 
     /**
-     * rotates node left, according to rules of AVl rotation
-     * time complexity: O(1)
+     * Rotates to the tree in the dir direction
+     * @param dir
      * @param node
      */
-    private void leftRotation(AVLNode node) {
+    private void rotate(Direction dir, AVLNode node) {
         AVLNode parent = node.getParent();
-        node.setParent(node.getRight());
-        node.setRight(node.getRight().getLeft());
-        node.getRight().setParent(node);
-        node.getParent().setLeft(node);
+        Direction dirOfNode = node.kindOfChild();
+        node.setParent(node.getChild(dir.opposite()));
+        node.setChild(dir.opposite(), node.getChild(dir.opposite()).getChild(dir));
+        node.getChild(dir.opposite()).setParent(node);
+        node.getParent().setChild(dir, node);
         if (parent == null) {
             node.getParent().setParent(null);
             root = node.getParent();
-        } else if (parent.getKey() < node.getKey())
-            parent.setRight(node.getParent());
-        else
-            parent.setLeft(node.getParent());
+        } else   parent.setChild(dirOfNode, node.getParent());
+
         node.getParent().setParent(parent);
         updateHeight(node);
+        updateHeight(node.getParent());
         updateXor(node);
         updateXor(node.getParent());
     }
 
 
-    /**
-     * rotates node right, according to rules of AVL rotations
-     * time complexity: O(1)
-     * @param node
-     */
-    private void rightRotation(AVLNode node) {
-        AVLNode parent = node.getParent();
-        node.setParent(node.getLeft());
-        node.setLeft(node.getLeft().getRight());
-        node.getLeft().setParent(node);
-        node.getParent().setRight(node);
-        if (parent == null) {
-            node.getParent().setParent(null);
-            root = node.getParent();
-        } else if (parent.getKey() < node.getKey())
-            parent.setRight(node.getParent());
-        else
-            parent.setLeft(node.getParent());
-        node.getParent().setParent(parent);
-        updateHeight(node);
-        updateXor(node);
-        updateXor(node.getParent());
-    }
     private void updateXor(AVLNode node) {
         node.setXorOfChildren(node.getValue() ^ node.getLeft().getXorOfChildren() ^ node.getRight().getXorOfChildren());
     }
@@ -297,18 +249,21 @@ public class AVLTree implements IBSTree {
     public int delete(int k) {
 
         AVLNode parent = deleteBST(k);
+        if (parent ==null) return -1;
 
-        int totalBalancing = 0;
+        int totalBalancing = 1;
         while (parent != null) {
             if (!updateHeight(parent) && Math.abs(parent.balanceFactor()) < 2) {
                 updateXorsUp(parent);
                 return totalBalancing;
             }
-            ++totalBalancing;
+
             updateXor(parent);
 
             if (Math.abs(parent.balanceFactor()) == 2) {
-                performRotation(parent);
+                dispatchRotation(parent);
+                ++totalBalancing;
+                parent = parent.getParent();
             }
             parent = parent.getParent();
         }
@@ -344,22 +299,13 @@ public class AVLTree implements IBSTree {
             } else {
 
                 node.getRight().setParent(parent);
-
-                if (parent.getKey() < k) {
-                    parent.setRight(node.getRight());
-                } else {
-                    parent.setLeft(node.getRight());
-                }
+                if (parent != null) parent.setChild(node.kindOfChild(), node.getRight());
+                else root = node.getRight();
             }
         } else {
-            if (node.getLeft().isRealNode()) {
-                node.getLeft().setParent(parent);
-            }
-            if (parent.getKey() < k) {
-                parent.setRight(node.getLeft());
-            } else {
-                parent.setLeft(node.getLeft());
-            }
+            node.getLeft().setParent(parent);
+            if (parent != null) parent.setChild(node.kindOfChild(), node.getLeft());
+            else root = node.getLeft();
         }
         return parent;
     }
@@ -374,28 +320,26 @@ public class AVLTree implements IBSTree {
     private AVLNode deleteTwoChidren(AVLNode node) {
         AVLNode succ = node.getNext();
         AVLNode succParent = succ.getParent();
-        if (succParent.getKey() != node.getKey()) {
-            succParent.setLeft(succ.getRight());
-            succ.getRight().setParent(succParent);
+        if (succParent != node) {
+            if (succParent != null) {
+                succParent.setLeft(succ.getRight());
+                succ.getRight().setParent(succParent);
+            } else {
+                root = succ.getLeft();
+                root.setParent(null);
+            }
             succ.setRight(node.getRight());
             node.getRight().setParent(succ);
         }
-
-
-
 
         succ.setLeft(node.getLeft());
         node.getLeft().setParent(succ);
 
         succ.setParent(node.getParent());
         if (node.getParent() != null) {
-            if (node.getParent().getKey() < node.getKey()) {
-                node.getParent().setRight(succ);
-            } else {
-                node.getParent().setLeft(succ);
-            }
-        }
-        return succParent.getKey() == node.getKey() ? succ : succParent;
+            node.getParent().setChild(node.kindOfChild(), succ);
+        } else root = succ;
+        return succParent == node ? succ : succParent;
     }
 
 
@@ -429,7 +373,7 @@ public class AVLTree implements IBSTree {
      * time complexity: O(1)
      */
     public Boolean min() {
-        return min.getValue();
+        return min == null ? null : min.getValue();
     }
 
     /**
@@ -440,7 +384,7 @@ public class AVLTree implements IBSTree {
      * time complexity: O(1)
      */
     public Boolean max() {
-        return max.getValue();
+        return max == null ? null : max.getValue();
     }
 
     /**
@@ -555,8 +499,8 @@ public class AVLTree implements IBSTree {
 
     public void printTree() {
         String[] visual = trepr(root);
-        for (int i=0; i<visual.length; i++) {
-            System.out.println(visual[i]);
+        for (String s : visual) {
+            System.out.println(s);
         }
     }
 
@@ -634,7 +578,14 @@ public class AVLTree implements IBSTree {
         // return new string of a+a...+a - t times
     }
 
+    public enum Direction {
+        Left, Right;
 
+        public Direction opposite() {
+            if (this == Left) return Right;
+            return Left;
+        }
+    }
     /**
      * public class AVLNode
      * <p>
@@ -656,7 +607,6 @@ public class AVLTree implements IBSTree {
         private AVLNode right;
         private AVLNode next;
         private AVLNode prev;
-
 
         /**
          * Create leaf with given key and value
@@ -776,6 +726,21 @@ public class AVLTree implements IBSTree {
             this.xorOfChildren = xor;
         }
 
+        public AVLNode getChild(Direction dir) {
+            if (dir == Direction.Left) return this.left;
+            return this.right;
+        }
+
+        public void setChild(Direction dir, AVLNode node) {
+            if (dir == Direction.Left) this.left = node;
+            else this.right = node;
+        }
+
+        public Direction kindOfChild() {
+            if (this.parent == null) return null;
+            if (this.key < this.parent.key) return Direction.Left;
+            return Direction.Right;
+        }
 
         @Override
         public String toString() {

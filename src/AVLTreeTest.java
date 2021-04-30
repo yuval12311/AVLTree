@@ -12,6 +12,7 @@ public class AVLTreeTest {
         System.out.println();
         secondExperiment();
 
+
     }
 
     public static void firstExperiment() {
