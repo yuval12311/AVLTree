@@ -25,7 +25,6 @@ public class AVLTreeTest {
                 t.prefixXor(keys[j]);
                 stop = nanoTime();
                 totalFast += stop - start;
-
                 start = nanoTime();
                 t.succPrefixXor(keys[j]);
                 stop = nanoTime();
@@ -39,7 +38,7 @@ public class AVLTreeTest {
                 t.prefixXor(keys[j]);
                 stop = nanoTime();
                 totalFast += stop - start;
-
+ 
                 start = nanoTime();
                 t.succPrefixXor(keys[j]);
                 stop = nanoTime();

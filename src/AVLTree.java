@@ -162,7 +162,13 @@ public class AVLTree implements IBSTree {
         if (prev != null) prev.setNext(node);
     }
 
-
+    /**
+     * Finds successor or predecessor with the usual algorithm
+     * time complexity: O(log(size))
+     * @param dir Direction to go, Left for predecessor, Right for successor
+     * @param node The node we start the search at
+     * @return the successor/predecessor
+     */
     private AVLNode slowAdj(Direction dir, AVLNode node) {
         if (node.getChild(dir).isRealNode()) {
             node = node.getChild(dir);
@@ -196,6 +202,7 @@ public class AVLTree implements IBSTree {
 
     /**
      * Rotates to the tree in the dir direction
+     * time complexity: O(1)
      * @param dir
      * @param node
      */
@@ -219,6 +226,11 @@ public class AVLTree implements IBSTree {
     }
 
 
+    /**
+     * Updates the xorOfChildren field
+     * time complexity: O(1)
+     * @param node
+     */
     private void updateXor(AVLNode node) {
         node.setXorOfChildren(node.getValue() ^ node.getLeft().getXorOfChildren() ^ node.getRight().getXorOfChildren());
     }
@@ -249,7 +261,7 @@ public class AVLTree implements IBSTree {
     public int delete(int k) {
 
         AVLNode parent = deleteBST(k);
-        if (parent ==null) return -1;
+        if (parent == null) return -1;
 
         int totalBalancing = 1;
         while (parent != null) {
@@ -596,6 +608,7 @@ public class AVLTree implements IBSTree {
      * <p>
      * However, you are allowed (and required) to implement the given functions, and can add functions of your own
      * according to your needs.
+     * All methods here are of time complexity O(1)
      */
     public class AVLNode {
         private final int key;
@@ -626,8 +639,6 @@ public class AVLTree implements IBSTree {
                 setHeight(0);
                 this.val = val;
                 this.xorOfChildren = val;
-
-
             }
         }
 
